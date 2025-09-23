@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tech-inspired Architecture Chatbot Design System 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Base colors - Dark tech theme */
+    --background: 222 47% 5%;
+    --foreground: 210 40% 95%;
+
+    /* Card colors */
+    --card: 224 39% 8%;
+    --card-foreground: 213 31% 91%;
+
+    /* Popover colors */
+    --popover: 224 39% 8%;
+    --popover-foreground: 213 31% 91%;
+
+    /* Primary - Electric blue */
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 5%;
+
+    /* Secondary - Muted purple */
+    --secondary: 262 25% 20%;
+    --secondary-foreground: 210 40% 95%;
+
+    /* Muted colors */
+    --muted: 223 27% 12%;
+    --muted-foreground: 215 20% 65%;
+
+    /* Accent - Electric cyan */
+    --accent: 188 94% 42%;
+    --accent-foreground: 222 47% 5%;
+
+    /* Destructive - Electric red */
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 210 40% 95%;
+
+    /* Borders and inputs */
+    --border: 223 27% 18%;
+    --input: 223 27% 18%;
+    --ring: 217 91% 60%;
+
+    /* Tech gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(188 94% 42%));
+    --gradient-secondary: linear-gradient(135deg, hsl(262 25% 20%), hsl(223 27% 12%));
+    --gradient-card: linear-gradient(145deg, hsl(224 39% 8%), hsl(223 27% 12%));
+    
+    /* Glows and effects */
+    --glow-primary: 0 0 20px hsl(217 91% 60% / 0.3);
+    --glow-accent: 0 0 20px hsl(188 94% 42% / 0.3);
+    
+    /* Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .light {
+    /* Light mode override - keeping tech theme lighter */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --primary: 217 91% 55%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 262 25% 95%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 188 94% 38%;
+    --accent-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 55%), hsl(188 94% 38%));
+    --gradient-secondary: linear-gradient(135deg, hsl(262 25% 95%), hsl(210 40% 96%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 40% 98%));
+    --glow-primary: 0 0 20px hsl(217 91% 55% / 0.2);
+    --glow-accent: 0 0 20px hsl(188 94% 38% / 0.2);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary/50;
+  }
+
+  /* Tech animations */
+  @keyframes glow-pulse {
+    0%, 100% { 
+      box-shadow: var(--glow-primary);
+    }
+    50% { 
+      box-shadow: var(--glow-accent);
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+  }
+}
