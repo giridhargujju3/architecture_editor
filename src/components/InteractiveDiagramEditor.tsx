@@ -58,6 +58,11 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
   const [showGrid, setShowGrid] = useState(true);
   const [showImage, setShowImage] = useState(true);
   const [arrowSource, setArrowSource] = useState<string | null>(null);
+
+  // Arrow drawing state
+  const [isDrawingArrow, setIsDrawingArrow] = useState(false);
+  const [arrowStart, setArrowStart] = useState<Point | null>(null);
+  const [arrowEnd, setArrowEnd] = useState<Point | null>(null);
   
   // Sidebar state
   const [sidebarCollapsed, setSidebarCollapsed] = useState<{[key: string]: boolean}>({
@@ -528,10 +533,7 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
     event.stopPropagation();
     const element = elements.find(el => el.id === elementId);
     setSelectedElement(elementId);
-    if (element?.type !== 'edge') {
-      handleContextMenu(event, elementId);
-    }
-    // For edges, just select and show edit handles without context menu
+    handleContextMenu(event, elementId);
   };
 
   const handleCanvasClick = (event: React.MouseEvent) => {
@@ -598,6 +600,15 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
       return;
     }
 
+    // Handle arrow drawing preview
+    if (isDrawingArrow && arrowStart) {
+      const rect = (event.currentTarget as SVGSVGElement).getBoundingClientRect();
+      const x = (event.clientX - rect.left - pan.x) / scale;
+      const y = (event.clientY - rect.top - pan.y) / scale;
+      setArrowEnd({ x, y });
+      return;
+    }
+
     if (!isDragging || !selectedElement) return;
 
     // Calculate movement delta and apply it directly
@@ -659,6 +670,17 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
     // Check for panning (space + drag or middle mouse)
     if (event.button === 1 || (event.button === 0 && event.altKey)) { // middle mouse or alt+left mouse
       startPan(event);
+      return;
+    }
+
+    // Handle arrow drawing
+    if (currentTool === 'add-arrow' && event.button === 0) {
+      const rect = (event.currentTarget as SVGSVGElement).getBoundingClientRect();
+      const x = (event.clientX - rect.left - pan.x) / scale;
+      const y = (event.clientY - rect.top - pan.y) / scale;
+      setIsDrawingArrow(true);
+      setArrowStart({ x, y });
+      setArrowEnd({ x, y });
       return;
     }
   };
@@ -1052,21 +1074,41 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
 
   const addArrowFromDrop = (x1: number, y1: number, x2: number, y2: number) => {
     const arrowStyle = getArrowStyle(selectedArrowType);
+
+    // Snap endpoints to nearest vertex centers if close enough
+    const SNAP_RADIUS = 20;
+    const nearestTo = (x: number, y: number) => {
+      let best: { id: string; cx: number; cy: number; dist: number } | null = null;
+      for (const el of elements) {
+        if (el.type !== 'vertex') continue;
+        const cx = el.x + el.width / 2;
+        const cy = el.y + el.height / 2;
+        const dx = cx - x;
+        const dy = cy - y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d <= SNAP_RADIUS && (!best || d < best.dist)) best = { id: el.id, cx, cy, dist: d };
+      }
+      return best;
+    };
+
+    const src = nearestTo(x1, y1);
+    const tgt = nearestTo(x2, y2);
+
+    const p1 = { x: src ? src.cx : x1, y: src ? src.cy : y1 };
+    const p2 = { x: tgt ? tgt.cx : x2, y: tgt ? tgt.cy : y2 };
+
     const newArrow: DiagramElement = {
       id: `arrow_${Date.now()}_${Math.random()}`,
       type: 'edge',
-      x: Math.min(x1, x2),
-      y: Math.min(y1, y2),
-      width: Math.abs(x2 - x1),
-      height: Math.abs(y2 - y1),
+      x: Math.min(p1.x, p2.x),
+      y: Math.min(p1.y, p2.y),
+      width: Math.abs(p2.x - p1.x),
+      height: Math.abs(p2.y - p1.y),
       value: '',
       style: arrowStyle,
-      source: '',
-      target: '',
-      points: [
-        { x: x1, y: y1 },
-        { x: x2, y: y2 }
-      ]
+      source: src ? src.id : '',
+      target: tgt ? tgt.id : '',
+      points: [p1, p2]
     };
     const updated = [...elements, newArrow];
     setElements(updated);
@@ -1076,6 +1118,20 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
     newHistory.push([...updated]);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
+  };
+
+  const createStandaloneArrow = (arrowType: string) => {
+    // Create arrow at center of visible canvas area
+    const centerX = 400; // Approximate center
+    const centerY = 300;
+    const arrowLength = 150;
+
+    addArrowFromDrop(
+      centerX - arrowLength / 2,
+      centerY,
+      centerX + arrowLength / 2,
+      centerY
+    );
   };
 
   const toggleSidebarSection = (section: string) => {
@@ -1447,6 +1503,17 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
 
       return (
         <g key={element.id}>
+          {/* Invisible wider path for easier selection */}
+          <path
+            d={pathData}
+            stroke="transparent"
+            strokeWidth="10"
+            fill="none"
+            onClick={(e) => handleElementClick(element.id, e)}
+            onContextMenu={(e) => handleElementContextMenu(element.id, e)}
+            style={{ cursor: isSelected ? 'move' : 'pointer' }}
+            pointerEvents="stroke"
+          />
           {/* Arrow path */}
           <path
             d={pathData}
@@ -1460,6 +1527,7 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
             onContextMenu={(e) => handleElementContextMenu(element.id, e)}
             style={{ cursor: isSelected ? 'move' : 'pointer' }}
             onMouseDown={(e) => {
+              e.stopPropagation();
               if (e.button === 0) startDrag(element.id, e, { wholeEdge: true });
             }}
           />
@@ -1475,6 +1543,7 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
                 fill="none"
                 opacity="0.15"
                 onMouseDown={(e) => {
+                  e.stopPropagation();
                   // Drag whole edge when grabbing the highlight
                   startDrag(element.id, e, { wholeEdge: true });
                 }}
@@ -1519,6 +1588,7 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
                     e.stopPropagation();
                     startDrag(element.id, e, { edgePointIndex: index });
                   }}
+                  onClick={(e) => e.stopPropagation()}
                 />
               ))}
               
@@ -1553,6 +1623,7 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
                       // Begin dragging the inserted point
                       startDrag(element.id, e, { edgePointIndex: index + 1 });
                     }}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <title>Click to add point</title>
                   </circle>
@@ -1927,37 +1998,33 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
                 {/* Arrow Types */}
                 <button
                   className="aspect-square border border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 flex items-center justify-center text-gray-700 hover:text-blue-700 transition-colors cursor-grab active:cursor-grabbing"
-                  onClick={() => { setSelectedArrowType('straight'); setCurrentTool('add-arrow'); }}
                   draggable
                   onDragStart={(e) => handleArrowDragStart(e, 'straight')}
-                  title="Straight Arrow - Click to select tool or drag to canvas"
+                  title="Straight Arrow - Drag to canvas"
                 >
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
                   className="aspect-square border border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 flex items-center justify-center text-gray-700 hover:text-blue-700 transition-colors cursor-grab active:cursor-grabbing"
-                  onClick={() => { setSelectedArrowType('curved'); setCurrentTool('add-arrow'); }}
                   draggable
                   onDragStart={(e) => handleArrowDragStart(e, 'curved')}
-                  title="Curved Arrow - Click to select tool or drag to canvas"
+                  title="Curved Arrow - Drag to canvas"
                 >
                   <div className="w-4 h-4 border-t border-r border-current rounded-tr-lg"></div>
                 </button>
                 <button
                   className="aspect-square border border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 flex items-center justify-center text-gray-700 hover:text-blue-700 transition-colors cursor-grab active:cursor-grabbing"
-                  onClick={() => { setSelectedArrowType('dashed'); setCurrentTool('add-arrow'); }}
                   draggable
                   onDragStart={(e) => handleArrowDragStart(e, 'dashed')}
-                  title="Dashed Arrow - Click to select tool or drag to canvas"
+                  title="Dashed Arrow - Drag to canvas"
                 >
                   <div className="w-4 h-0.5 border-t border-dashed border-current"></div>
                 </button>
                 <button
                   className="aspect-square border border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 flex items-center justify-center text-gray-700 hover:text-blue-700 transition-colors cursor-grab active:cursor-grabbing"
-                  onClick={() => { setSelectedArrowType('double'); setCurrentTool('add-arrow'); }}
                   draggable
                   onDragStart={(e) => handleArrowDragStart(e, 'double')}
-                  title="Double Arrow - Click to select tool or drag to canvas"
+                  title="Double Arrow - Drag to canvas"
                 >
                   <div className="flex flex-col gap-0.5">
                     <div className="w-4 h-0.5 border-t border-current"></div>
@@ -1966,10 +2033,9 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
                 </button>
                 <button
                   className="aspect-square border border-gray-300 rounded hover:bg-blue-50 hover:border-blue-300 flex items-center justify-center text-gray-700 hover:text-blue-700 transition-colors cursor-grab active:cursor-grabbing"
-                  onClick={() => { setSelectedArrowType('bidirectional'); setCurrentTool('add-arrow'); }}
                   draggable
                   onDragStart={(e) => handleArrowDragStart(e, 'bidirectional')}
-                  title="Bidirectional Arrow - Click to select tool or drag to canvas"
+                  title="Bidirectional Arrow - Drag to canvas"
                 >
                   <div className="w-4 h-0.5 border-t border-current relative">
                     <div className="absolute -left-1 -top-0.5 w-2 h-2 border-l border-t border-current transform rotate-45"></div>
@@ -2198,14 +2264,26 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
             className={`${showImage && imageUrl ? "bg-transparent" : "bg-gray-50"} ${currentTool === 'add-block' ? 'drop-shadow-sm' : ''}`}
             onClick={handleCanvasClick}
             onMouseDown={handleMouseDown}
-            onMouseMove={isDragging ? handleMouseMove : isResizing ? handleResizeMove : isRotating ? handleRotateMove : isPanning ? handleMouseMove : undefined}
-            onMouseUp={isDragging ? handleMouseUp : isResizing ? handleResizeUp : isRotating ? handleRotateUp : isPanning ? handleMouseUp : undefined}
+            onMouseMove={isDragging || isDrawingArrow ? handleMouseMove : isResizing ? handleResizeMove : isRotating ? handleRotateMove : isPanning ? handleMouseMove : undefined}
+            onMouseUp={(e) => {
+              if (isDragging) { handleMouseUp(); return; }
+              if (isResizing) { handleResizeUp(); return; }
+              if (isRotating) { handleRotateUp(); return; }
+              if (isPanning) { handleMouseUp(); return; }
+              if (isDrawingArrow && arrowStart && arrowEnd) {
+                addArrowFromDrop(arrowStart.x, arrowStart.y, arrowEnd.x, arrowEnd.y);
+                setIsDrawingArrow(false);
+                setArrowStart(null);
+                setArrowEnd(null);
+                return;
+              }
+            }}
             onWheel={handleWheel}
             onDragOver={handleCanvasDragOver}
             onDrop={handleCanvasDrop}
             style={{
               cursor: currentTool === 'add-block' ? 'crosshair' :
-                     currentTool === 'add-arrow' ? 'crosshair' :
+                     currentTool === 'add-arrow' ? (isDrawingArrow ? 'crosshair' : 'crosshair') :
                      isDragging ? 'grabbing' :
                      isResizing ? 'crosshair' :
                      isRotating ? 'crosshair' :
@@ -2238,6 +2316,17 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
                   opacity="1"
                   pointerEvents="none"
                   preserveAspectRatio="xMidYMid meet"
+                />
+              )}
+              {isDrawingArrow && arrowStart && arrowEnd && (
+                <path
+                  d={`M ${arrowStart.x} ${arrowStart.y} L ${arrowEnd.x} ${arrowEnd.y}`}
+                  stroke="#007bff"
+                  strokeWidth="2"
+                  fill="none"
+                  markerEnd="url(#arrowhead)"
+                  strokeDasharray="4,4"
+                  pointerEvents="none"
                 />
               )}
               {elements.map(renderElement)}

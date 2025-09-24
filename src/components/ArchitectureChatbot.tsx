@@ -51,10 +51,10 @@ export const ArchitectureChatbot = () => {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 container mx-auto p-4 grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+      <div className="flex-1 container mx-auto p-4 grid grid-cols-1 lg:grid-cols-2 gap-6 h-full overflow-hidden">
         {/* Left Panel - File Upload & Architecture Viewer */}
         <Card className="bg-gradient-card border-border/50 flex flex-col overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-2 bg-secondary/50">
               <TabsTrigger value="upload" className="flex items-center gap-2">
                 <Upload className="w-4 h-4" />
@@ -65,12 +65,12 @@ export const ArchitectureChatbot = () => {
                 Viewer
               </TabsTrigger>
             </TabsList>
-            
-            <TabsContent value="upload" className="flex-1 p-4">
+
+            <TabsContent value="upload" className="flex-1 p-4 overflow-hidden">
               <FileUploader onFilesUploaded={handleFilesUploaded} />
             </TabsContent>
-            
-            <TabsContent value="viewer" className="flex-1 p-4">
+
+            <TabsContent value="viewer" className="flex-1 p-4 overflow-hidden">
               <ArchitectureViewer
                 imageFile={uploadedFiles.image}
                 xmlContent={xmlContent}
@@ -81,8 +81,8 @@ export const ArchitectureChatbot = () => {
         </Card>
 
         {/* Right Panel - Chat & XML Editor */}
-        <Card className="bg-gradient-card border-border/50 flex flex-col">
-          <Tabs defaultValue="chat" className="flex-1 flex flex-col">
+        <Card className="bg-gradient-card border-border/50 flex flex-col overflow-hidden">
+          <Tabs defaultValue="chat" className="flex-1 flex flex-col overflow-hidden">
             <TabsList className="grid w-full grid-cols-2 bg-secondary/50">
               <TabsTrigger value="chat" className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
@@ -102,8 +102,8 @@ export const ArchitectureChatbot = () => {
               />
             </TabsContent>
             
-            <TabsContent value="xml" className="flex-1 p-4">
-              <XmlEditor 
+            <TabsContent value="xml" className="flex-1 p-4 overflow-hidden">
+              <XmlEditor
                 content={xmlContent}
                 onChange={setXmlContent}
               />

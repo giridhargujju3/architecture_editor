@@ -91,9 +91,9 @@ export const XmlEditor = ({ content, onChange }: XmlEditorProps) => {
   const formattedXml = formatXml(isEditing ? editContent : content);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Editor Header */}
-      <div className="flex items-center justify-between mb-4 p-3 bg-secondary/20 rounded">
+      <div className="flex items-center justify-between mb-4 p-3 bg-secondary/20 rounded flex-shrink-0">
         <div className="flex items-center gap-3">
           <FileText className="w-5 h-5 text-primary" />
           <span className="font-medium">XML Code</span>
@@ -108,7 +108,7 @@ export const XmlEditor = ({ content, onChange }: XmlEditorProps) => {
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2">
           {isEditing ? (
             <>
@@ -133,19 +133,23 @@ export const XmlEditor = ({ content, onChange }: XmlEditorProps) => {
       </div>
 
       {/* XML Content */}
-      <Card className="flex-1 overflow-hidden bg-gradient-secondary">
+      <Card className="flex-1 bg-gradient-secondary overflow-hidden">
         {content ? (
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full w-full">
             {isEditing ? (
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="w-full h-full min-h-[400px] bg-transparent border-none outline-none p-4 font-mono text-sm resize-none"
-                spellCheck={false}
-              />
+              <div className="p-4 h-full">
+                <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="w-full h-full min-h-[400px] bg-transparent border-none outline-none font-mono text-sm resize-none"
+                  spellCheck={false}
+                />
+              </div>
             ) : (
-              <div className="p-4">
-                <pre className="text-sm font-mono text-foreground whitespace-pre-wrap break-all">
+              <div className="p-4 h-full">
+                <pre
+                  className="text-sm font-mono text-foreground whitespace-pre-wrap break-all leading-relaxed"
+                >
                   {formattedXml}
                 </pre>
               </div>
@@ -168,7 +172,7 @@ export const XmlEditor = ({ content, onChange }: XmlEditorProps) => {
       {content && !isEditing && (
         <Button
           variant="outline"
-          className="mt-4 w-full"
+          className="mt-4 w-full flex-shrink-0"
           onClick={() => {
             setEditContent(content);
             setIsEditing(true);
