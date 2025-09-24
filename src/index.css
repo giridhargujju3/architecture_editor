@@ -126,6 +126,23 @@ All colors MUST be HSL.
     @apply bg-primary/50;
   }
 
+  /* Sidebar specific scrollbar */
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .sidebar-scroll::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+  
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+
   /* Tech animations */
   @keyframes glow-pulse {
     0%, 100% { 
