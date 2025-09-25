@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Bot, User, Zap } from "lucide-react";
+import { Send, Bot, User, Zap, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Message {
@@ -20,21 +20,62 @@ interface ChatInterfaceProps {
 }
 
 export const ChatInterface = ({ hasFiles, xmlContent, onXmlUpdate }: ChatInterfaceProps) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'ai',
-      content: 'Hello! I\'m your Architecture AI assistant. Upload your architecture diagrams and XML files, then tell me what changes you\'d like to make. I can help you modify components, add new elements, or restructure your architecture.',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Load messages from localStorage on mount
   useEffect(() => {
+    const savedMessages = localStorage.getItem('chatMessages');
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        // Convert timestamp strings back to Date objects
+        const messagesWithDates = parsed.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(messagesWithDates);
+      } catch (error) {
+        console.error('Error loading messages:', error);
+        // Fallback to default message
+        setMessages([
+          {
+            id: '1',
+            type: 'ai',
+            content: 'Hello! I\'m your Architecture AI assistant. Upload your architecture diagrams and XML files, then tell me what changes you\'d like to make. I can help you modify components, add new elements, or restructure your architecture.',
+            timestamp: new Date()
+          }
+        ]);
+      }
+    } else {
+      // Default message
+      setMessages([
+        {
+          id: '1',
+          type: 'ai',
+          content: 'Hello! I\'m your Architecture AI assistant. Upload your architecture diagrams and XML files, then tell me what changes you\'d like to make. I can help you modify components, add new elements, or restructure your architecture.',
+          timestamp: new Date()
+        }
+      ]);
+    }
+  }, []);
+
+  // Save messages to localStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('chatMessages', JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    // Scroll to bottom when messages change
     if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+      const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollElement) {
+        scrollElement.scrollTop = scrollElement.scrollHeight;
+      }
     }
   }, [messages]);
 
@@ -780,12 +821,39 @@ export const ChatInterface = ({ hasFiles, xmlContent, onXmlUpdate }: ChatInterfa
     }
   };
 
+  const clearChat = () => {
+    const defaultMessage = {
+      id: '1',
+      type: 'ai' as const,
+      content: 'Hello! I\'m your Architecture AI assistant. Upload your architecture diagrams and XML files, then tell me what changes you\'d like to make. I can help you modify components, add new elements, or restructure your architecture.',
+      timestamp: new Date()
+    };
+    setMessages([defaultMessage]);
+    localStorage.setItem('chatMessages', JSON.stringify([defaultMessage]));
+    toast.success("Chat cleared!");
+  };
+
   return (
     <div className="h-full flex flex-col">
-      <div className="flex-1 flex flex-col">
-        {/* Chat Messages */}
-        <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
-          <div className="space-y-4">
+      {/* Clear Chat Button */}
+      {messages.length > 1 && (
+        <div className="flex justify-end p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearChat}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <Trash2 className="w-4 h-4 mr-1" />
+            Clear Chat
+          </Button>
+        </div>
+      )}
+
+      {/* Chat Messages - Takes remaining space */}
+      <div className="flex-1 min-h-0">
+        <ScrollArea className="h-full pr-4" ref={scrollAreaRef}>
+          <div className="space-y-4 pb-4">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -836,30 +904,33 @@ export const ChatInterface = ({ hasFiles, xmlContent, onXmlUpdate }: ChatInterfa
             )}
           </div>
         </ScrollArea>
+      </div>
 
-        {/* Input Area */}
-        <div className="space-y-2">
+      {/* Input Area - Fixed at bottom */}
+      <div className="flex-shrink-0 bg-transparent" style={{ position: 'sticky', bottom: 0 }}>
+        <div className="p-4">
           {!hasFiles && (
-            <Card className="p-3 bg-destructive/10 border-destructive/20">
+            <Card className="p-3 bg-destructive/10 border-destructive/20 mb-3">
               <p className="text-sm text-destructive">
                 📁 Please upload your architecture files first to start chatting
               </p>
             </Card>
           )}
-          
-          <div className="flex gap-2">
+
+          <div className="flex gap-3">
             <Input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={hasFiles ? "Ask me to modify your architecture..." : "Upload files first..."}
               disabled={!hasFiles || isLoading}
-              className="flex-1"
+              className="flex-1 h-12 text-base bg-transparent border-border/50 focus:border-primary/50 transition-all duration-200"
             />
             <Button
               onClick={handleSendMessage}
               disabled={!hasFiles || !inputValue.trim() || isLoading}
-              className="bg-gradient-primary hover:shadow-glow-primary transition-all duration-300"
+              variant="outline"
+              className="h-12 px-6"
             >
               <Send className="w-4 h-4" />
             </Button>

@@ -94,12 +94,14 @@ export const ArchitectureChatbot = () => {
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="chat" className="flex-1 p-4">
-              <ChatInterface 
-                hasFiles={hasFiles}
-                xmlContent={xmlContent}
-                onXmlUpdate={setXmlContent}
-              />
+            <TabsContent value="chat" className="flex-1 p-0 h-full mt-0">
+              <div className="h-full p-4">
+                <ChatInterface 
+                  hasFiles={hasFiles}
+                  xmlContent={xmlContent}
+                  onXmlUpdate={setXmlContent}
+                />
+              </div>
             </TabsContent>
             
             <TabsContent value="xml" className="flex-1 p-4 overflow-hidden">
