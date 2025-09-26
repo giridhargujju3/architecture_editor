@@ -433,7 +433,7 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
       const prevElements = history[historyIndex - 1];
       setElements([...prevElements]);
       setHistoryIndex(historyIndex - 1);
-      updateXml();
+      updateXml(prevElements);
     }
   }, [history, historyIndex, updateXml]);
 
@@ -442,7 +442,7 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
       const nextElements = history[historyIndex + 1];
       setElements([...nextElements]);
       setHistoryIndex(historyIndex + 1);
-      updateXml();
+      updateXml(nextElements);
     }
   }, [history, historyIndex, updateXml]);
 
@@ -1230,7 +1230,10 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
     });
     setElements(updated);
     updateXml(updated);
-    saveToHistory();
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push([...updated]);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
   };
 
   const changeStrokeColor = (color: string) => {
@@ -1246,7 +1249,10 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
     });
     setElements(updated);
     updateXml(updated);
-    saveToHistory();
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push([...updated]);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
   };
 
   const parseStyle = (style: string): any => {
@@ -1620,6 +1626,11 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
                         return { ...elm, points: base };
                       });
                       setElements(updated);
+                      updateXml(updated);
+                      const newHistory = history.slice(0, historyIndex + 1);
+                      newHistory.push([...updated]);
+                      setHistory(newHistory);
+                      setHistoryIndex(newHistory.length - 1);
                       // Begin dragging the inserted point
                       startDrag(element.id, e, { edgePointIndex: index + 1 });
                     }}
@@ -1721,32 +1732,32 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
             <Button
               size="sm"
               variant={currentTool === 'select' ? 'default' : 'outline'}
-              onClick={() => setCurrentTool('select')}
-              title="Select Tool (V)"
+              onClick={() => setCurrentTool(currentTool === 'select' ? 'select' : 'select')}
+              title="Select Tool (V) - Click to activate"
             >
               <MousePointer className="w-4 h-4" />
             </Button>
             <Button
               size="sm"
               variant={currentTool === 'add-block' ? 'default' : 'outline'}
-              onClick={() => setCurrentTool('add-block')}
-              title="Add Block (B)"
+              onClick={() => setCurrentTool(currentTool === 'add-block' ? 'select' : 'add-block')}
+              title="Add Block (B) - Click to toggle on/off"
             >
               <Square className="w-4 h-4" />
             </Button>
             <Button
               size="sm"
               variant={currentTool === 'add-arrow' ? 'default' : 'outline'}
-              onClick={() => setCurrentTool('add-arrow')}
-              title="Add Arrow (A)"
+              onClick={() => setCurrentTool(currentTool === 'add-arrow' ? 'select' : 'add-arrow')}
+              title="Add Arrow (A) - Click to toggle on/off"
             >
               <ArrowRight className="w-4 h-4" />
             </Button>
             <Button
               size="sm"
               variant={currentTool === 'drag' ? 'default' : 'outline'}
-              onClick={() => setCurrentTool('drag')}
-              title="Drag Tool (D)"
+              onClick={() => setCurrentTool(currentTool === 'drag' ? 'select' : 'drag')}
+              title="Drag Tool (D) - Click to toggle on/off"
             >
               <Move className="w-4 h-4" />
             </Button>
@@ -1817,7 +1828,7 @@ export const InteractiveDiagramEditor = ({ xml, onXmlUpdate, className, imageFil
           <Button size="sm" variant="outline" onClick={handleZoomIn} title="Zoom In">
             <ZoomIn className="w-4 h-4" />
           </Button>
-          <Button size="sm" variant="outline" onClick={handleResetView} title="Reset View">
+          <Button size="sm" variant="outline" onClick={undo} disabled={historyIndex <= 0} title="Revert Changes - Undo last action">
             <RotateCcw className="w-4 h-4" />
           </Button>
         </div>
